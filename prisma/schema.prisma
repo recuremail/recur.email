@@ -1,0 +1,509 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+enum Node {
+  NODE1
+  NODE2
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  createdAt         DateTime @default(now()) @map(name: "created_at")
+  updatedAt         DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map(name: "accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map(name: "sessions")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  publicEmail   String?   @unique @map("public_email")
+  image         String?
+  
+  createdAt     DateTime  @default(now()) @map(name: "created_at")
+  updatedAt     DateTime  @updatedAt  @default(now()) @map(name: "updated_at")
+
+  url           String?
+  twitter       String?
+
+  accounts          Account[]
+  sessions          Session[]
+
+  newsletters       Newsletter[]
+
+  images        Image[]
+  audios        Audio[]
+  videos        Video[]
+  files         File[]
+
+  @@map(name: "users")
+}
+
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map(name: "verification_tokens")
+}
+
+
+model Newsletter {
+  id            String    @id @default(cuid())
+
+  username      String    @unique
+  name          String?
+  description   String?
+  domain        String?   @unique
+  fromName      String?   @map("from_name")
+
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  website      String?
+  twitter      String?
+  emoji        String?
+  keywords     String?
+
+  trackLinks   Boolean @default(false) @map("track_links")
+  trackOpens   Boolean @default(false) @map("track_opens")
+
+  //address, emoji, description, url, twitter
+  // postmark. We create new server here.
+
+  postmarkServerId       Int?  @unique @map("postmark_server_id")
+  postmarkServer         Json? @map("postmark_server")
+  postmarkMessageStreams Json? @map("postmark_message_streams")
+
+  inboundAddress         String? @map("inbound_address") @unique
+
+  editorsEmails           String? @map("editors_emails")
+
+  webArchive           Boolean @default(false) @map("web_archive")
+  webArchiveOnHomePage Boolean @default(false) @map("web_archive_on_home_page")
+
+  checkSuppressionsAt DateTime? @map("check_suppressions_at")
+  checkStatusesAt     DateTime? @map("check_statuses_at")
+
+  subscribers    Subscriber[]
+  emails         Email[]
+  outboundEmails OutboundEmail[]
+
+  images        Image[]
+  audios        Audio[]
+  videos        Video[]
+  files         File[]
+
+
+  createdAt     DateTime @default(now()) @map(name: "created_at")
+  updatedAt     DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+
+  @@index([userId])
+
+  @@map(name: "newsletters")
+}
+
+enum SubscriberStatus {
+  INITIAL
+  PENDING
+  VERIFIED
+  UNSUBSCRIBED
+  BOUNCED
+  SPAM_COMPLAINED
+  DELETED
+  SPAMMER
+  SPAMMER_DELETED
+}
+
+
+
+model Subscriber {
+  id            String    @id @default(cuid())
+
+  email         String
+  name          String?
+
+  newsletterId  String
+  newsletter    Newsletter @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now()) @map(name: "created_at")
+  updatedAt     DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+  status        SubscriberStatus @default(INITIAL)
+
+
+  outboundEmails OutboundEmail[]
+  // only use if this email was imported
+  importedAt      DateTime? @map(name: "imported_at")
+  // only by user
+  confirmedAt     DateTime? @map(name: "confirmed_at")
+  // can be set by user and equals confirmedAt or can be set by verifiedByUserId
+  verifiedAt      DateTime? @map(name: "verified_at")
+  unsubscribedAt  DateTime? @map(name: "unsubscribed_at")
+
+  // set it if was manually verified by the owner
+  verifiedByUserId String? @map(name: "verified_by_user_id")
+
+  markedAsSpammerAt DateTime? @map(name: "marked_as_spammer_at")
+  markedAsSpammerByUserId String? @map(name: "marked_as_spammer_by_user_id")
+
+  ownerNotifiedAt DateTime? @map(name: "owner_notified_at")
+
+  bouncedAt       DateTime? @map(name: "bounced_at")
+
+  suppression    Json?
+
+
+  clientOrigin           String? @map(name: "client_origin")
+  clientIP               String? @map(name: "client_ip")
+  clientIPCountry        String? @map(name: "client_ip_country")
+  clientIPCountryRegion  String? @map(name: "client_ip_country_region")
+  clientIPCity           String? @map(name: "client_ip_city")
+  clientIPLatitude       String? @map(name: "client_ip_latitude")
+  clientIPLongitude      String? @map(name: "client_ip_longitude")
+  clientUserAgent        Json? @map(name: "client_user_agent")
+  clientBrowser          Json? @map(name: "client_browser")
+  clientEngine           Json? @map(name: "client_engine")
+  clientOperatingSystem  Json? @map(name: "client_operating_system")
+  clientDevice           Json? @map(name: "client_device")
+  clientIsBot            Boolean? @map(name: "client_is_bot")
+
+  honeypotData           Json? @map(name: "honeypot_data")
+  honeypotLastCheckedAt  DateTime? @map(name: "honeypot_last_checked_at")
+  honeypotIsSearchEngine Boolean? @map(name: "honeypot_is_search_engine")
+  honeypotIsSuspicious   Boolean? @map(name: "honeypot_is_suspicious")
+  honeypotIsSpammer      Boolean? @map(name: "honeypot_is_spammer")
+  honeypotIsHarvester    Boolean? @map(name: "honeypot_is_harverster")
+  honeypotIsFound        Boolean? @map(name: "honeypot_is_found")
+
+  honeypotLastSeenDays   Int? @map(name: "honeypot_last_seen_days")
+  honeypotThreatScore    Int? @map(name: "honeypot_threat_score")
+
+  @@index([newsletterId])
+  @@unique([newsletterId, email, status])
+
+  @@map(name: "subscribers")
+}
+
+model Email {
+  id            String @id @default(cuid())
+
+  subject       String
+  slug          String
+  textBody      String @db.LongText @map("text_body")
+  htmlBody      String @db.LongText @map("html_body")
+
+  newsletterId  String
+  newsletter    Newsletter @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+
+  postmarkId    String? @unique @map("postmark_id")
+  headers       Json? @map("headers")
+
+  createdAt     DateTime @default(now()) @map(name: "created_at")
+  updatedAt     DateTime @updatedAt @default(now()) @map(name: "updated_at")
+
+  images        Image[]
+  audios        Audio[]
+  videos        Video[]
+  files         File[]
+  
+  outboundEmails OutboundEmail[]
+  approvedAt    DateTime? @map(name: "approved_at")
+  scheduledAt   DateTime? @map(name: "scheduled_at")
+  deletedAt     DateTime? @map(name: "deleted_at")
+
+  attachments   Json?
+
+  @@index([newsletterId])
+  @@unique([newsletterId, slug])
+
+  @@map(name: "emails")
+}
+
+enum OutboundEmailStatus {
+  PENDING
+  // mark sending when we start a job
+  SENDING
+  SENT
+  FAILED
+}
+
+model OutboundEmail {
+  id            String @id @default(cuid())
+
+  newsletterId  String @map("newsletter_id")
+  newsletter    Newsletter @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  emailId       String? @map("email_id")
+  email         Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  subscriberId  String @map("subscriber_id")
+  subscriber    Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  status        OutboundEmailStatus
+  createdAt     DateTime @default(now()) @map(name: "created_at")
+  updatedAt     DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+  postmarkErrorCode   Int? @map("postmark_error_code")
+  postmarkMessage     String? @db.LongText @map("postmark_message")
+  postmarkMessageId   String? @map("postmark_message_id")
+  postmarkSubmittedAt DateTime? @map("postmark_submitted_at")
+  postmarkTo          String? @map("postmark_to")
+
+  postmarkStatusCheckedAt DateTime? @map("postmark_status_checked_at")
+
+  postmarkEvents Json? @map("postmark_events")
+  postmarkReceivedAt DateTime? @map("postmark_received_at")
+  postmarkDeliveredAt DateTime? @map("postmark_delivered_at")
+  postmarkOpenedAt DateTime? @map("postmark_opened_at")
+  postmarkBouncedAt DateTime? @map("postmark_bounced_at")
+  postmarkTransientAt DateTime? @map("postmark_transient_at")
+  postmarkSubscriptionChangedAt DateTime? @map("postmark_subscription_changed_at")
+  postmarkLinkClickedAt DateTime? @map("postmark_link_clicked_at")
+
+  @@index([newsletterId])
+  @@index([emailId])
+  @@index([subscriberId])
+
+  @@map(name: "outbound_emails")
+}
+
+model Image {
+  id             String  @id @default(cuid())
+
+  externalId     String @unique @map(name: "external_id")
+  emailId        String? @map(name: "email_id")
+  email          Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  newsletterId   String? @map(name: "newsletter_id")
+  newsletter     Newsletter? @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  userId         String? @map(name: "user_id")
+  user           User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+   
+  uploadErrorMsg  String?  @map(name: "upload_error_msg")
+
+  assetId        String? @map(name: "asset_id")
+  width          Int?
+  height         Int?
+  bytes          Int?
+  format         String?
+  cloudCreatedAt DateTime? @map(name: "cloud_created_at")
+  url            String?
+
+  originalFilename String? @map(name: "original_filename")
+
+  metadata          Json?
+  imageMetadata     Json? @map(name: "image_metadata")
+  colors            Json?
+  predominantColors Json? @map(name: "predominant_colors")
+
+  phash            String?
+  semiTransparent  Boolean? @map(name: "semi_transparent")
+  grayscale        Boolean?
+  
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+  
+  @@index([emailId])
+  @@index([newsletterId])
+  @@index([userId])
+  @@index([assetId])
+
+  @@map("images")
+}
+
+model Audio {
+  id             String  @id @default(cuid())
+
+  externalId     String @unique @map(name: "external_id")
+  emailId        String? @map(name: "email_id")
+  email          Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  newsletterId   String? @map(name: "newsletter_id")
+  newsletter     Newsletter? @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  userId         String? @map(name: "user_id")
+  user           User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  uploadErrorMsg  String? @map(name: "upload_error_msg")
+
+  assetId        String? @map(name: "asset_id")
+  format         String?
+  bytes          Int?
+  bitRate        Int? @map(name: "bit_rate")
+  duration       Float?
+  cloudCreatedAt DateTime? @map(name: "cloud_created_at")
+  url            String?
+
+  originalFilename String? @map(name: "original_filename")
+
+  metadata       Json?
+  
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+  @@index([emailId])
+  @@index([newsletterId])
+  @@index([userId])
+  @@index([assetId])
+
+  @@map("audios")
+}
+
+model Video {
+  id             String  @id @default(cuid())
+
+  externalId     String @unique @map(name: "external_id")
+  emailId        String? @map(name: "email_id")
+  email          Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  newsletterId   String? @map(name: "newsletter_id")
+  newsletter     Newsletter? @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  userId         String? @map(name: "user_id")
+  user           User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  uploadErrorMsg  String?  @map(name: "upload_error_msg")
+
+  assetId        String? @map(name: "asset_id")
+  format         String?
+  width          Int?
+  height         Int?
+  bytes          Int?
+  frameRate      Int?  @map(name: "frame_rate")
+  bitRate        Int? @map(name: "bit_rate")
+  duration       Float?
+  rotation       Int?
+  nbFrames       Int? @map(name: "nb_frames")
+  cloudCreatedAt DateTime? @map(name: "cloud_created_at")
+  url            String?
+
+  originalFilename String? @map(name: "original_filename")
+
+  metadata       Json?
+  
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+
+  @@index([emailId])
+  @@index([newsletterId])
+  @@index([userId])
+  @@index([assetId])
+
+  @@map("videos")
+}
+
+model File {
+  id             String  @id @default(cuid())
+
+  externalId     String @unique @map(name: "external_id")
+  emailId        String? @map(name: "email_id")
+  email          Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  newsletterId   String? @map(name: "newsletter_id")
+  newsletter     Newsletter? @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  userId         String? @map(name: "user_id")
+  user           User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  uploadErrorMsg  String?  @map(name: "upload_error_msg")
+
+  assetId        String? @map(name: "asset_id")
+  format         String?
+  resourceType   String? @map(name: "resource_type")
+  cloudCreatedAt DateTime? @map(name: "cloud_created_at")
+  url            String?
+
+  originalFilename String? @map(name: "original_filename")
+  fileTitle        String? @map(name: "file_title")
+
+  metadata       Json?
+  
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+  @@index([emailId])
+  @@index([newsletterId])
+  @@index([userId])
+  @@index([assetId])
+
+  @@map("files")
+}
+
+model PotentialSpammer {
+  id             String  @id @default(cuid())
+
+  newsletterId   String? @map(name: "newsletter_id")
+  subscriberId   String? @map(name: "subscriber_id")
+
+
+  clientOrigin           String? @map(name: "client_origin")
+  clientIP               String? @map(name: "client_ip")
+  clientIPCountry        String? @map(name: "client_ip_country")
+  clientIPCountryRegion  String? @map(name: "client_ip_country_region")
+  clientIPCity           String? @map(name: "client_ip_city")
+  clientIPLatitude       String? @map(name: "client_ip_latitude")
+  clientIPLongitude      String? @map(name: "client_ip_longitude")
+  clientUserAgent        Json? @map(name: "client_user_agent")
+  clientBrowser          Json? @map(name: "client_browser")
+  clientEngine           Json? @map(name: "client_engine")
+  clientOperatingSystem  Json? @map(name: "client_operating_system")
+  clientDevice           Json? @map(name: "client_device")
+  clientIsBot            Boolean? @map(name: "client_is_bot")
+
+  honeypotData           Json? @map(name: "honeypot_data")
+  honeypotLastCheckedAt  DateTime? @map(name: "honeypot_last_checked_at")
+  honeypotIsSearchEngine Boolean? @map(name: "honeypot_is_search_engine")
+  honeypotIsSuspicious   Boolean? @map(name: "honeypot_is_suspicious")
+  honeypotIsSpammer      Boolean? @map(name: "honeypot_is_spammer")
+  honeypotIsHarvester    Boolean? @map(name: "honeypot_is_harverster")
+  honeypotIsFound        Boolean? @map(name: "honeypot_is_found")
+
+  honeypotLastSeenDays   Int? @map(name: "honeypot_last_seen_days")
+  honeypotThreatScore    Int? @map(name: "honeypot_threat_score")
+
+  email          String @unique
+  createdAt      DateTime @default(now()) @map(name: "created_at")
+  updatedAt      DateTime @updatedAt  @default(now()) @map(name: "updated_at")
+
+
+  @@map("potential_spammers")
+}

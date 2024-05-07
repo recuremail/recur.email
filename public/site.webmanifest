@@ -1,0 +1,19 @@
+{
+  "name": "Recur Email",
+  "short_name": "Recur",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#ffffff",
+  "background_color": "#FFFEF5",
+  "display": "standalone"
+}

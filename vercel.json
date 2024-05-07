@@ -1,0 +1,28 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/send_newsletter_emails",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/notify_owner_on_subscriber",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/check_sending_emails",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/check_suppressions",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/check_outbound_emails_statuses",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/check_honeypot",
+      "schedule": "* * * * *"
+    }
+  ]
+}
