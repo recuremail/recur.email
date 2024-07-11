@@ -36,27 +36,27 @@ export async function POST(req: Request) {
 
     const username = payload.username.toLowerCase()
 
-    // const {postmarkServer, inboundAddress, error } = await createMailServer(username)
+    const {postmarkServer, inboundAddress, error } = await createMailServer(username)
     
-    // if(postmarkServer) { 
+    if(postmarkServer) { 
 
-    //   console.log('aaa', postmarkServer)
-    //   const newsletter = await db.newsletter.create({
-    //     data: {
-    //       username: username,
-    //       name: payload.name,
-    //       description: payload.description,
-    //       userId: user.id,
-    //       postmarkServerId: postmarkServer.ID,
-    //       postmarkServer: postmarkServer,
-    //       inboundAddress,
-    //     }
-    //   })
-    //   va.track("newsletter.created");
-    //   return new Response(JSON.stringify(newsletter))
-    // } else {
-    //   console.log('cannot create newsletter', error)
-    // }
+      console.log('aaa', postmarkServer)
+      const newsletter = await db.newsletter.create({
+        data: {
+          username: username,
+          name: payload.name,
+          description: payload.description,
+          userId: user.id,
+          postmarkServerId: postmarkServer.ID,
+          postmarkServer: postmarkServer,
+          inboundAddress,
+        }
+      })
+      va.track("newsletter.created");
+      return new Response(JSON.stringify(newsletter))
+    } else {
+      console.log('cannot create newsletter', error)
+    }
     
     return new Response(null, { status: 422})
   } catch (error) {
