@@ -3,6 +3,7 @@ import * as z from "zod"
 import va from "@vercel/analytics"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { SubscriberStatus } from "@prisma/client"
 import { newsletterUpdateSchema } from "@/lib/validations/schemas"
 import { updateMailServer, getServerMessageStreams, editServerMessageStreams } from '@/lib/emails'
 import moment from "moment"
@@ -55,6 +56,7 @@ export async function GET(req: Request,
     const subsribers = await db.subscriber.findMany({
       where: {
         newsletterId: newsletter.id
+        status: SubscriberStatus.VERIFIED,
       }
     })
     const csvRows = subsribers.map((s) => {
