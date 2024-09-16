@@ -55,7 +55,7 @@ export async function GET(req: Request,
 
     const subsribers = await db.subscriber.findMany({
       where: {
-        newsletterId: newsletter.id
+        newsletterId: newsletter.id,
         status: SubscriberStatus.VERIFIED,
       }
     })
