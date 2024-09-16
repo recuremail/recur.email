@@ -3,8 +3,13 @@ import * as z from "zod"
 import va from "@vercel/analytics"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { SubscriberStatus } from "@prisma/client"
 import { newsletterUpdateSchema } from "@/lib/validations/schemas"
-import { updateMailServer, getServerMessageStreams, editServerMessageStreams } from '@/lib/emails'
+import {
+  updateMailServer,
+  getServerMessageStreams,
+  editServerMessageStreams,
+} from "@/lib/emails"
 import moment from "moment"
 
 const routeContextSchema = z.object({
@@ -13,9 +18,10 @@ const routeContextSchema = z.object({
   }),
 })
 
-
-export async function GET(req: Request,
-  context: z.infer<typeof routeContextSchema>) {
+export async function GET(
+  req: Request,
+  context: z.infer<typeof routeContextSchema>
+) {
   try {
     // Validate route params.
     const { params } = routeContextSchema.parse(context)
@@ -37,16 +43,16 @@ export async function GET(req: Request,
     }
     const dbUser = await db.user.findUnique({
       where: {
-        id: user.id
-      }
+        id: user.id,
+      },
     })
     if (!dbUser) {
       return new Response("Unauthorized", { status: 403 })
     }
     const newsletter = await db.newsletter.findUnique({
       where: {
-        username: params.newsletterId
-      }
+        username: params.newsletterId,
+      },
     })
     if (!newsletter || !newsletter.postmarkServerId) {
       return new Response("Not found", { status: 404 })
@@ -54,17 +60,25 @@ export async function GET(req: Request,
 
     const subsribers = await db.subscriber.findMany({
       where: {
-        newsletterId: newsletter.id
-      }
+        newsletterId: newsletter.id,
+        status: SubscriberStatus.VERIFIED,
+      },
     })
     const csvRows = subsribers.map((s) => {
-      return `${s.email},${s.status},${moment(s.createdAt).format()},${moment(s.updatedAt).format()}`
+      return `${s.email},${s.status},${moment(s.createdAt).format()},${moment(
+        s.updatedAt
+      ).format()}`
     })
-    const csv = `email, status, created_at, updated_at\n` + csvRows.join('\n')
-    return new Response(csv, { status: 200, 
-      headers: { 'Content-Type': 'text/csv', "Content-Disposition": `attachment; filename=subscribers.csv` } })
+    const csv = `email, status, created_at, updated_at\n` + csvRows.join("\n")
+    return new Response(csv, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename=subscribers.csv`,
+      },
+    })
   } catch (error) {
-    console.log('cannot export subscribers', error)
+    console.log("cannot export subscribers", error)
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify(error.issues), { status: 422 })
     }
@@ -72,7 +86,6 @@ export async function GET(req: Request,
     return new Response(null, { status: 500 })
   }
 }
-
 
 async function verifyCurrentUserHasAccessToNewsletter(newsletterId: string) {
   const session = await getServerSession(authOptions)
