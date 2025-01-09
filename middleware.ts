@@ -45,6 +45,9 @@ export default withAuth(
     if (hostname == "recur.email") {
       return NextResponse.redirect(new URL("https://recuremail.com"))
     }
+    if (hostname == "docs.recur.email") {
+      return NextResponse.redirect(new URL("https://recuremail.com/docs"))
+    }
     const token = await getToken({ req })
     const url = req.nextUrl.clone()
 
